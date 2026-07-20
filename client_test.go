@@ -1,0 +1,144 @@
+package nsupp
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"testing"
+)
+
+type call struct {
+	method, url string
+	headers     map[string]string
+	body        string
+}
+
+func mockTransport(calls *[]call, queue []struct {
+	status int
+	body   string
+}) Transport {
+	i := 0
+	return func(method, u string, headers map[string]string, body []byte) (int, []byte, error) {
+		*calls = append(*calls, call{method: method, url: u, headers: headers, body: string(body)})
+		var nxt struct {
+			status int
+			body   string
+		}
+		if i < len(queue) {
+			nxt = queue[i]
+			i++
+		} else {
+			nxt = struct {
+				status int
+				body   string
+			}{200, `{"error":false,"data":{}}`}
+		}
+		return nxt.status, []byte(nxt.body), nil
+	}
+}
+
+func TestAuthAndEnvelope(t *testing.T) {
+	var calls []call
+	c, err := New(Config{Identifier: "nsupp_pk_abc", Secret: "s3cr3t", Transport: mockTransport(&calls, []struct {
+		status int
+		body   string
+	}{{200, `{"error":false,"data":{"name":"Acme"}}`}})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := c.Request("GET", "/v1/website/pk1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, _ := data.(map[string]any)
+	if m["name"] != "Acme" {
+		t.Fatalf("data açılmadı: %v", data)
+	}
+	want := "Basic " + base64.StdEncoding.EncodeToString([]byte("nsupp_pk_abc:s3cr3t"))
+	if calls[0].headers["Authorization"] != want {
+		t.Fatalf("auth başlığı yanlış: %s", calls[0].headers["Authorization"])
+	}
+	if calls[0].headers["X-Cof-Tier"] != "plugin" {
+		t.Fatal("X-Cof-Tier plugin değil")
+	}
+	if calls[0].url != "https://api.nsupp.com/cof/v1/website/pk1" {
+		t.Fatalf("url yanlış: %s", calls[0].url)
+	}
+}
+
+func TestErrorEnvelope(t *testing.T) {
+	var calls []call
+	c, _ := New(Config{Identifier: "i", Secret: "s", Transport: mockTransport(&calls, []struct {
+		status int
+		body   string
+	}{{403, `{"error":true,"reason":"scope denied","code":"scope_denied"}`}})})
+	_, err := c.Request("GET", "/v1/website/pk1/people/profiles", nil)
+	var ne *Error
+	if !errors.As(err, &ne) {
+		t.Fatalf("*Error beklendi: %v", err)
+	}
+	if ne.Message != "scope denied" || ne.Code != "scope_denied" || ne.Status != 403 {
+		t.Fatalf("Error alanları yanlış: %+v", ne)
+	}
+}
+
+func TestQueryBodyAndWebsiteScope(t *testing.T) {
+	var calls []call
+	c, _ := New(Config{Identifier: "i", Secret: "s", WebsiteID: "pk9", Transport: mockTransport(&calls, []struct {
+		status int
+		body   string
+	}{{200, `{"error":false,"data":[]}`}, {200, `{"error":false,"data":{"fingerprint":"m1"}}`}, {200, `{"error":false,"data":{"delivered":true}}`}})})
+	w, err := c.Website()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.WebsiteID != "pk9" {
+		t.Fatal("websiteID pk9 değil")
+	}
+	_, _ = w.ListConversations(map[string]string{"page": "1", "empty": ""})
+	if calls[0].url != "https://api.nsupp.com/cof/v1/website/pk9/conversations?page=1" {
+		t.Fatalf("query url yanlış: %s", calls[0].url)
+	}
+	_, _ = w.SendMessage("s1", "merhaba")
+	var sent map[string]any
+	_ = json.Unmarshal([]byte(calls[1].body), &sent)
+	if sent["content"] != "merhaba" || calls[1].headers["Content-Type"] != "application/json" {
+		t.Fatalf("body/header yanlış: %s", calls[1].body)
+	}
+	_, _ = w.EmailReply("s1", "yanıt")
+	if calls[2].url != "https://api.nsupp.com/cof/v1/website/pk9/conversation/s1/email-reply" {
+		t.Fatalf("email-reply url yanlış: %s", calls[2].url)
+	}
+}
+
+func TestHeadAndOverrides(t *testing.T) {
+	var calls []call
+	c, _ := New(Config{Identifier: "i", Secret: "s", Tier: "website", BaseURL: "http://localhost:8788/cof/", Transport: mockTransport(&calls, []struct {
+		status int
+		body   string
+	}{{200, ``}, {404, ``}})})
+	if _, err := c.Request("HEAD", "/v1/website/pk1/conversation/s1", nil); err != nil {
+		t.Fatalf("HEAD 2xx hata verdi: %v", err)
+	}
+	if calls[0].headers["X-Cof-Tier"] != "website" {
+		t.Fatal("tier override çalışmadı")
+	}
+	if calls[0].url != "http://localhost:8788/cof/v1/website/pk1/conversation/s1" {
+		t.Fatalf("baseURL trim yanlış: %s", calls[0].url)
+	}
+	_, err := c.Request("HEAD", "/v1/website/pk1/conversation/nope", nil)
+	var ne *Error
+	if !errors.As(err, &ne) || ne.Status != 404 {
+		t.Fatalf("HEAD 404 *Error(404) beklendi: %v", err)
+	}
+}
+
+func TestRequiredArgs(t *testing.T) {
+	if _, err := New(Config{Secret: "s"}); err == nil {
+		t.Fatal("Identifier zorunlu olmalı")
+	}
+	c, _ := New(Config{Identifier: "i", Secret: "s", Transport: func(string, string, map[string]string, []byte) (int, []byte, error) { return 200, []byte("{}"), nil }})
+	if _, err := c.Website(); err == nil {
+		t.Fatal("websiteID olmadan hata olmalı")
+	}
+}
