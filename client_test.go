@@ -111,6 +111,37 @@ func TestQueryBodyAndWebsiteScope(t *testing.T) {
 	}
 }
 
+func TestFaz56SupportHelpers(t *testing.T) {
+	var calls []call
+	c, _ := New(Config{Identifier: "i", Secret: "s", WebsiteID: "pk9", Transport: mockTransport(&calls, nil)})
+	w, _ := c.Website()
+	base := "https://api.nsupp.com/cof/v1/website/pk9"
+	_, _ = w.AddInternalNote("s1", "iç not")
+	if calls[0].method != "POST" || calls[0].url != base+"/conversation/s1/note" {
+		t.Fatalf("note yol yanlış: %s %s", calls[0].method, calls[0].url)
+	}
+	_, _ = w.GetContact("s1")
+	if calls[1].url != base+"/conversation/s1/contact" {
+		t.Fatalf("contact yol yanlış: %s", calls[1].url)
+	}
+	_, _ = w.RemoveParticipant("s1", "lee@acme.com")
+	if calls[2].method != "DELETE" || calls[2].url != base+"/conversation/s1/participants/lee@acme.com" {
+		t.Fatalf("removeParticipant yol yanlış: %s %s", calls[2].method, calls[2].url)
+	}
+	_, _ = w.CreateCannedReply(map[string]any{"shortcut": "iade", "body": "3-5"})
+	if calls[3].method != "POST" || calls[3].url != base+"/canned-replies" {
+		t.Fatalf("canned yol yanlış: %s %s", calls[3].method, calls[3].url)
+	}
+	_, _ = w.ListOrderNotes("trendyol", "TY-4471")
+	if calls[4].url != base+"/orders/notes?connector=trendyol&order=TY-4471" {
+		t.Fatalf("order-notes query yanlış: %s", calls[4].url)
+	}
+	_, _ = w.DeleteOrderNote("on1")
+	if calls[5].method != "DELETE" || calls[5].url != base+"/orders/notes/on1" {
+		t.Fatalf("deleteOrderNote yol yanlış: %s %s", calls[5].method, calls[5].url)
+	}
+}
+
 func TestHeadAndOverrides(t *testing.T) {
 	var calls []call
 	c, _ := New(Config{Identifier: "i", Secret: "s", Tier: "website", BaseURL: "http://localhost:8788/cof/", Transport: mockTransport(&calls, []struct {

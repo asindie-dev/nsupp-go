@@ -213,6 +213,16 @@ func (w *WebsiteScope) SendMessage(sid, content string) (any, error) {
 	return w.Request("POST", "/conversation/"+url.PathEscape(sid)+"/message", &RequestOptions{Body: map[string]any{"content": content}})
 }
 
+// SendMessageWithAttachments — content + ek referansları (Crisp attachment parite).
+func (w *WebsiteScope) SendMessageWithAttachments(sid, content string, attachments []any) (any, error) {
+	return w.Request("POST", "/conversation/"+url.PathEscape(sid)+"/message", &RequestOptions{Body: map[string]any{"content": content, "attachments": attachments}})
+}
+
+// AddInternalNote — iç ekip notu (private note; müşteriye gitmez). Scope: website:conversation:notes.
+func (w *WebsiteScope) AddInternalNote(sid, content string) (any, error) {
+	return w.Request("POST", "/conversation/"+url.PathEscape(sid)+"/note", &RequestOptions{Body: map[string]any{"content": content}})
+}
+
 // Bağlı-kanal teslim-eden yanıtlar (ticket/mail/pazaryeri/yorum)
 func (w *WebsiteScope) EmailReply(sid, content string) (any, error) {
 	return w.Request("POST", "/conversation/"+url.PathEscape(sid)+"/email-reply", &RequestOptions{Body: map[string]any{"content": content}})
@@ -225,6 +235,39 @@ func (w *WebsiteScope) ReviewReply(sid, content string) (any, error) {
 }
 func (w *WebsiteScope) AddParticipant(sid, operatorEmail string) (any, error) {
 	return w.Request("POST", "/conversation/"+url.PathEscape(sid)+"/participants", &RequestOptions{Body: map[string]any{"operator_email": operatorEmail}})
+}
+func (w *WebsiteScope) RemoveParticipant(sid, operatorEmail string) (any, error) {
+	return w.Request("DELETE", "/conversation/"+url.PathEscape(sid)+"/participants/"+url.PathEscape(operatorEmail), nil)
+}
+
+// GetContact — görüşmenin müşteri kişisi (kime yanıt: email/ad/people_id). Scope: website:people:profiles.
+func (w *WebsiteScope) GetContact(sid string) (any, error) {
+	return w.Request("GET", "/conversation/"+url.PathEscape(sid)+"/contact", nil)
+}
+
+// Hazır yanıtlar (composer makroları) — Scope: website:canned
+func (w *WebsiteScope) ListCannedReplies() (any, error) {
+	return w.Request("GET", "/canned-replies", nil)
+}
+func (w *WebsiteScope) CreateCannedReply(body map[string]any) (any, error) {
+	return w.Request("POST", "/canned-replies", &RequestOptions{Body: body})
+}
+func (w *WebsiteScope) UpdateCannedReply(id string, body map[string]any) (any, error) {
+	return w.Request("PATCH", "/canned-replies/"+url.PathEscape(id), &RequestOptions{Body: body})
+}
+func (w *WebsiteScope) DeleteCannedReply(id string) (any, error) {
+	return w.Request("DELETE", "/canned-replies/"+url.PathEscape(id), nil)
+}
+
+// Sipariş notları (eDesk Order notes; at-rest AES-GCM) — Scope: website:orders:notes
+func (w *WebsiteScope) ListOrderNotes(connector, order string) (any, error) {
+	return w.Request("GET", "/orders/notes", &RequestOptions{Query: map[string]string{"connector": connector, "order": order}})
+}
+func (w *WebsiteScope) CreateOrderNote(body map[string]any) (any, error) {
+	return w.Request("POST", "/orders/notes", &RequestOptions{Body: body})
+}
+func (w *WebsiteScope) DeleteOrderNote(id string) (any, error) {
+	return w.Request("DELETE", "/orders/notes/"+url.PathEscape(id), nil)
 }
 
 // People / Helpdesk / Visitors
