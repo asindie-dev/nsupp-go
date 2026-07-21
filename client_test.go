@@ -1,7 +1,10 @@
 package nsupp
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -171,5 +174,29 @@ func TestRequiredArgs(t *testing.T) {
 	c, _ := New(Config{Identifier: "i", Secret: "s", Transport: func(string, string, map[string]string, []byte) (int, []byte, error) { return 200, []byte("{}"), nil }})
 	if _, err := c.Website(); err == nil {
 		t.Fatal("websiteID olmadan hata olmalı")
+	}
+}
+
+func TestVerifyWebhook(t *testing.T) {
+	secret := "cof_whsec_test"
+	payload := `{"id":"evt_1","event":"message:received"}`
+	ts := "1784361825398"
+	var tsNum int64 = 1784361825398
+	// Bağımsız oracle: sunucunun imzaladığı gibi HMAC-SHA256(`${ts};${body}`).
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(ts + ";" + payload))
+	sig := hex.EncodeToString(mac.Sum(nil))
+
+	if !VerifyWebhook(payload, sig, ts, secret, 0, tsNum+1000) {
+		t.Fatal("geçerli imza + taze ts → true olmalı")
+	}
+	if VerifyWebhook(payload+" ", sig, ts, secret, 0, tsNum+1000) {
+		t.Fatal("kurcalanmış gövde → false olmalı")
+	}
+	if VerifyWebhook(payload, sig, ts, secret, 0, tsNum+6*60*1000) {
+		t.Fatal("bayat ts (replay) → false olmalı")
+	}
+	if VerifyWebhook(payload, sig, "nope", secret, 0, tsNum) {
+		t.Fatal("sayısal olmayan ts → false olmalı")
 	}
 }
