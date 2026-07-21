@@ -5,12 +5,16 @@ package nsupp
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -278,3 +282,32 @@ func (w *WebsiteScope) ListArticles() (any, error) {
 	return w.Request("GET", "/helpdesk/articles", nil)
 }
 func (w *WebsiteScope) ListVisitors() (any, error) { return w.Request("GET", "/visitors", nil) }
+
+// VerifyWebhook, bir nsupp Web Hook teslimini doğrular. HMAC-SHA256(`<timestamp>;<payload>`, secret)
+// değerini HAM gövde üzerinden yeniden hesaplar, X-Cof-Signature ile sabit-zamanlı karşılaştırır ve
+// X-Cof-Request-Timestamp tolerans penceresi dışındaysa reddeder (replay savunması). payload HAM istek
+// gövdesi olmalı (JSON'u yeniden ayrıştırıp seri hale getirme). toleranceSec <= 0 ise 300 (5 dk) kullanılır;
+// nowMs == 0 ise şu anki zaman (ms) kullanılır. Yalnız her iki kontrol de geçerse true döner.
+func VerifyWebhook(payload, signature, timestamp, secret string, toleranceSec int, nowMs int64) bool {
+	if toleranceSec <= 0 {
+		toleranceSec = 300
+	}
+	tsNum, err := strconv.ParseInt(strings.TrimSpace(timestamp), 10, 64)
+	if err != nil {
+		return false
+	}
+	if nowMs == 0 {
+		nowMs = time.Now().UnixMilli()
+	}
+	diff := nowMs - tsNum
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > int64(toleranceSec)*1000 {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(timestamp + ";" + payload))
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(signature), []byte(expected))
+}
