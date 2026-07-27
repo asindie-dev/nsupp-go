@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Asindie, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nsupp — nsupp /cof/v1 REST API için tipli, bağımlılıksız istemci (stdlib net/http).
 // HTTP Basic + X-Cof-Tier auth, {error,data} zarf açma, *Error, web-sitesi kapsamı.
 // Kapsanmayan her uç Request() kaçış-kapısıyla erişilebilir.

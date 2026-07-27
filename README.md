@@ -7,7 +7,7 @@ Handles HTTP Basic auth + `X-Cof-Tier`, unwraps the `{ error, data }` envelope, 
 ## Install
 
 ```bash
-go get posthubify/nsupp-rest
+go get nsupp.com/rest-go
 ```
 
 ## Quickstart
@@ -15,7 +15,7 @@ go get posthubify/nsupp-rest
 ```go
 import (
     "errors"
-    nsupp "posthubify/nsupp-rest"
+    nsupp "nsupp.com/rest-go"
 )
 
 client, _ := nsupp.New(nsupp.Config{
@@ -49,3 +49,10 @@ site.Request("POST", "/helpdesk/article/a_1/alternate", &nsupp.RequestOptions{Bo
 ```
 
 Run the tests: `go test ./...`.
+
+## License
+
+Licensed under the [Apache License 2.0](./LICENSE).
+
+"nsupp" and the nsupp logo are trademarks of Asindie, Inc. The license grants no trademark rights — see the
+[trademark policy](https://github.com/asindie-dev/nsupp/blob/main/TRADEMARK.md) for what use is permitted.
