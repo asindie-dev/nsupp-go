@@ -309,6 +309,22 @@ func (w *WebsiteScope) ListAuditEvents(query map[string]string) (any, error) {
 	return w.Request("GET", "/audit", &RequestOptions{Query: query})
 }
 
+// Ekip sohbeti — scope: website:team:chat.
+
+// ListTeamChatMessages, ekibin GENEL kanalını okur. KAPSAM BİLEREK DAR: özel gruplar ve birebir
+// mesajlar API'de YOKTUR — o kanalların üyeliği KİŞİ kimliğine bağlıdır, API anahtarının arkasında
+// kişi yoktur. Silinen mesaj yerinde kalır (content boş, deleted true) — akışta delik açılmaz.
+func (w *WebsiteScope) ListTeamChatMessages(query map[string]string) (any, error) {
+	return w.Request("GET", "/team-chat", &RequestOptions{Query: query})
+}
+
+// PostTeamChatMessage, genel ekip kanalına mesaj yazar (ziyaretçiye GİTMEZ). Yazar adı eklenti
+// kimliğinden gelir, gövdeden değil: bir eklenti kendini başka bir uygulama ya da bir operatör
+// gibi gösteremez.
+func (w *WebsiteScope) PostTeamChatMessage(content string) (any, error) {
+	return w.Request("POST", "/team-chat", &RequestOptions{Body: map[string]any{"content": content}})
+}
+
 // Kişisel veri paylaşımı (0179) — scope: website:disclosure.
 
 // GetDisclosure, operatörün müşteriyi doğrulayıp doğrulamadığını ve hangi siparişlerin
