@@ -281,6 +281,49 @@ func (w *WebsiteScope) DeleteOrderNote(id string) (any, error) {
 func (w *WebsiteScope) ListPeople(query map[string]string) (any, error) {
 	return w.Request("GET", "/people/profiles", &RequestOptions{Query: query})
 }
+
+// UpdatePersonData, kişi özel alanlarını BİRLEŞTİRİR (kısmi güncelleme).
+// Tavanlar: istek başına 30, kişi başına 60 anahtar; anahtar <=64, değer (JSON) <=1024 karakter.
+// Tavanı aşan anahtar kırpılmaz, DÜŞÜRÜLÜR (sayısı X-Cof-Attributes-Dropped başlığındadır).
+// "$..." (nsupp) ve "_..." (operatör) önekli anahtarlar reddedilir.
+func (w *WebsiteScope) UpdatePersonData(peopleID string, data map[string]any) (any, error) {
+	return w.Request("PATCH", "/people/"+url.PathEscape(peopleID)+"/data", &RequestOptions{Body: data})
+}
+
+// ReplacePersonData, kişi özel alanlarını TAM DEĞİŞTİRİR.
+// Ayrılmış ("$..."/"_...") anahtarlar KORUNUR — tam değiştirme onları silemez.
+func (w *WebsiteScope) ReplacePersonData(peopleID string, data map[string]any) (any, error) {
+	return w.Request("PUT", "/people/"+url.PathEscape(peopleID)+"/data", &RequestOptions{Body: data})
+}
+
+// Alt kutular (Inbox) — otomatik yönlendirme kuralları dahil.
+func (w *WebsiteScope) ListInboxes() (any, error) { return w.Request("GET", "/inboxes", nil) }
+
+func (w *WebsiteScope) GetInbox(inboxID string) (any, error) {
+	return w.Request("GET", "/inbox/"+url.PathEscape(inboxID), nil)
+}
+
+// CreateInbox, alt kutu oluşturur; body["conditions"] ile OTOMATİK yönlendirme kurulur:
+//
+//	map[string]any{"manual": false, "mode": "and", "rules": []any{
+//	    map[string]any{"kind": "data", "key": "plan", "op": "eq", "value": "vip"},
+//	    map[string]any{"kind": "sla", "slaWithinDays": 2},
+//	}}
+//
+// kind: email · locale · country · segment · data · sla. "data" kuralı "key" ister
+// ("$"/"_" önekleri reddedilir). Birden çok SLA kuralı eşleşirse EN DAR eşik kazanır.
+func (w *WebsiteScope) CreateInbox(body map[string]any) (any, error) {
+	return w.Request("POST", "/inbox", &RequestOptions{Body: body})
+}
+
+// SaveInbox, alt kutuyu günceller (yalnız gönderilen alanlar değişir).
+func (w *WebsiteScope) SaveInbox(inboxID string, body map[string]any) (any, error) {
+	return w.Request("PUT", "/inbox/"+url.PathEscape(inboxID), &RequestOptions{Body: body})
+}
+
+func (w *WebsiteScope) DeleteInbox(inboxID string) (any, error) {
+	return w.Request("DELETE", "/inbox/"+url.PathEscape(inboxID), nil)
+}
 func (w *WebsiteScope) ListArticles() (any, error) {
 	return w.Request("GET", "/helpdesk/articles", nil)
 }
