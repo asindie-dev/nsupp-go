@@ -299,6 +299,16 @@ func (w *WebsiteScope) ReplacePersonData(peopleID string, data map[string]any) (
 // Alt kutular (Inbox) — otomatik yönlendirme kuralları dahil.
 func (w *WebsiteScope) ListInboxes() (any, error) { return w.Request("GET", "/inboxes", nil) }
 
+// Şeffaflık günlüğü (salt-okur) — scope: website:audit.
+
+// ListAuditEvents, çalışma alanı denetim kaydını okur. YAZMA YOLU YOKTUR — kaydı sistem üretir;
+// eklenti yazabilseydi iz sahtelenebilir ve kanıt olmaktan çıkardı. Toplama kapalıysa yanıt
+// enabled:false der. Essentials altı planda yalnız en yeni 20 satır döner ve filtreler yok sayılır;
+// kayıt SİLİNMEZ, yükseltmede geri gelir.
+func (w *WebsiteScope) ListAuditEvents(query map[string]string) (any, error) {
+	return w.Request("GET", "/audit", &RequestOptions{Query: query})
+}
+
 // Kişisel veri paylaşımı (0179) — scope: website:disclosure.
 
 // GetDisclosure, operatörün müşteriyi doğrulayıp doğrulamadığını ve hangi siparişlerin
