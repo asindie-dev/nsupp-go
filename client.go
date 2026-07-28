@@ -299,6 +299,29 @@ func (w *WebsiteScope) ReplacePersonData(peopleID string, data map[string]any) (
 // Alt kutular (Inbox) — otomatik yönlendirme kuralları dahil.
 func (w *WebsiteScope) ListInboxes() (any, error) { return w.Request("GET", "/inboxes", nil) }
 
+// Kişisel veri paylaşımı (0179) — scope: website:disclosure.
+
+// GetDisclosure, operatörün müşteriyi doğrulayıp doğrulamadığını ve hangi siparişlerin
+// paylaşılabileceğini döndürür. DOĞRULAMA API'de YOKTUR: kapıyı açmak operatörün canlı temasta
+// verdiği güven kararıdır (API'den açılabilseydi sipariş-no + e-posta denemeleri sorgulayıcıya dönerdi).
+func (w *WebsiteScope) GetDisclosure(sessionID string) (any, error) {
+	return w.Request("GET", "/conversation/"+url.PathEscape(sessionID)+"/disclosure", nil)
+}
+
+// ShareOrder, doğrulanmış siparişi sohbete KART olarak gönderir (no + durum + kargo + takip linki).
+// Kart SUNUCUDA kurulur; gönderdiğiniz alanlar yok sayılır. Kartta alıcı adı/adres/telefon/e-posta
+// ASLA bulunmaz. Doğrulanmamışsa 403 "disclosure_unverified".
+func (w *WebsiteScope) ShareOrder(sessionID, connectorID, orderNumber string) (any, error) {
+	body := map[string]any{"kind": "order", "connector_id": connectorID, "order_number": orderNumber}
+	return w.Request("POST", "/conversation/"+url.PathEscape(sessionID)+"/disclosure/share", &RequestOptions{Body: body})
+}
+
+// ShareProduct, ürün kartı gönderir — katalog kişisel veri DEĞİL, doğrulama kapısı yoktur.
+func (w *WebsiteScope) ShareProduct(sessionID, connectorID, productID string) (any, error) {
+	body := map[string]any{"connector_id": connectorID, "product_id": productID}
+	return w.Request("POST", "/conversation/"+url.PathEscape(sessionID)+"/share-product", &RequestOptions{Body: body})
+}
+
 // Arşiv (0175) — duruma DİK eksen.
 
 // GetConversationState, görüşme durumunu + arşiv bayrağını döndürür.
