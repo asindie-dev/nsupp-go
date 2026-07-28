@@ -299,6 +299,20 @@ func (w *WebsiteScope) ReplacePersonData(peopleID string, data map[string]any) (
 // Alt kutular (Inbox) — otomatik yönlendirme kuralları dahil.
 func (w *WebsiteScope) ListInboxes() (any, error) { return w.Request("GET", "/inboxes", nil) }
 
+// Arşiv (0175) — duruma DİK eksen.
+
+// GetConversationState, görüşme durumunu + arşiv bayrağını döndürür.
+func (w *WebsiteScope) GetConversationState(sessionID string) (any, error) {
+	return w.Request("GET", "/conversation/"+url.PathEscape(sessionID)+"/state", nil)
+}
+
+// SetConversationState, durumu ve/veya arşiv bayrağını değiştirir (ikisi tek çağrıda gönderilebilir).
+// Arşiv YALNIZ çözülmüş görüşmede geçerlidir (400 "not_resolved"); yeniden açılınca damga OTOMATİK
+// temizlenir. body: map[string]any{"state": "resolved", "archived": true}
+func (w *WebsiteScope) SetConversationState(sessionID string, body map[string]any) (any, error) {
+	return w.Request("PATCH", "/conversation/"+url.PathEscape(sessionID)+"/state", &RequestOptions{Body: body})
+}
+
 func (w *WebsiteScope) GetInbox(inboxID string) (any, error) {
 	return w.Request("GET", "/inbox/"+url.PathEscape(inboxID), nil)
 }
