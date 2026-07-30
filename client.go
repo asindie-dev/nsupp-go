@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -419,4 +420,64 @@ func VerifyWebhook(payload, signature, timestamp, secret string, toleranceSec in
 	mac.Write([]byte(timestamp + ";" + payload))
 	expected := hex.EncodeToString(mac.Sum(nil))
 	return hmac.Equal([]byte(signature), []byte(expected))
+}
+
+// CanonicalIdentityEmail, kimlik imzalamadan önce uygulanan KANONİK e-posta biçimini üretir:
+// ① baştan/sondan şu baytlar atılır: space \t \n \r \v \f · ② YALNIZ A-Z (0x41-0x5A) → a-z (0x61-0x7A).
+// Başka HİÇBİR bayt değişmez; e-posta UTF-8'dir ve ASCII-dışı baytlar olduğu gibi korunur.
+//
+// NİÇİN KANONİKLEŞTİRME: aynı kullanıcının e-postası site tarafında farklı yazımlarla gelir (form
+// girişi, OAuth profili, DB kaydı). İmzayı ham metne bağlamak "Jane@Acme.com" ile imzalayıp
+// "jane@acme.com" gönderen entegrasyonu SESSİZCE kırıyordu.
+//
+// NİÇİN strings.ToLower / strings.TrimSpace DEĞİL — SADELEŞTİRMEYİN, KIRARSINIZ: bu imzayı BİZ
+// doğrularız ama BAŞKA diller üretir, yani kural her uygulamada BAYT BAYT aynı sonucu vermek
+// zorunda. Unicode küçültme bunu sağlamıyor; ölçüldü: 'İSTANBUL@X.com' → JS/Python "i̇stanbul@x.com"
+// (i + U+0307) · Go "istanbul@x.com" (düz i) · PHP "İstanbul@x.com" (hiç değişmedi). Unicode kırpma
+// da aynı dertte (PHP trim yalnız ASCII boşluk atar). Bu yüzden kapsam ASCII ile SINIRLIDIR ve
+// uygulama bayt düzeyinde açıkça yazılır. DÜRÜST SINIR: 'Ömer@x.com' → 'Ömer@x.com' (Ö korunur) —
+// belirlenebilirlik, kapsamdan önce gelir.
+func CanonicalIdentityEmail(email string) string {
+	isTrimByte := func(c byte) bool {
+		return c == 0x20 || c == 0x09 || c == 0x0a || c == 0x0d || c == 0x0b || c == 0x0c
+	}
+	b := []byte(email)
+	start, end := 0, len(b)
+	for start < end && isTrimByte(b[start]) {
+		start++
+	}
+	for end > start && isTrimByte(b[end-1]) {
+		end--
+	}
+	out := make([]byte, end-start)
+	copy(out, b[start:end])
+	for i, c := range out {
+		if c >= 0x41 && c <= 0x5a {
+			out[i] = c + 32
+		}
+	}
+	return string(out)
+}
+
+// SignIdentity, giriş yapmış kullanıcının e-postasını çalışma-alanı kimlik anahtarıyla imzalar:
+// HMAC-SHA256(CanonicalIdentityEmail(email), secret) → küçük harf hex. Widget bu imzayı e-postayla
+// birlikte gönderir; nsupp aynı hesabı yapıp sabit-zamanlı karşılaştırır, böylece anonim ziyaretçi
+// başkasının kimliğini SAHTELEYEMEZ.
+//
+// Gizli anahtar tarayıcıya ASLA konmaz (JS'e gömmek, HTML'e basmak, ön-uca uç açmak dahil) — sızarsa
+// herkes herkesin kimliğini imzalar. İmza YALNIZ sizin sunucunuzda, oturumdan okunan e-posta ile
+// üretilir; anahtar loglanmaz.
+//
+// FAIL-CLOSED: boş e-posta İMZALANMAZ, hata döner. SignIdentity("") geçerli GÖRÜNEN bir hex
+// döndürüyordu; oturumda e-posta boşsa hiçbir yerde hata çıkmaz, imza sayfaya gider ve kimlik ASLA
+// doğrulanmaz (sunucu e-postasız iddiayı zaten reddeder). Sessiz çıkmaz — bu yardımcının önlemek
+// için var olduğu hata sınıfının ta kendisi.
+func SignIdentity(email, secret string) (string, error) {
+	canonical := CanonicalIdentityEmail(email)
+	if canonical == "" {
+		return "", errors.New("nsupp: SignIdentity: email is empty — nothing to sign; read it from the logged-in session before calling")
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(canonical))
+	return hex.EncodeToString(mac.Sum(nil)), nil
 }

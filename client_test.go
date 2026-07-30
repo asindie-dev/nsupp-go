@@ -200,3 +200,30 @@ func TestVerifyWebhook(t *testing.T) {
 		t.Fatal("sayısal olmayan ts → false olmalı")
 	}
 }
+
+func TestSignIdentity(t *testing.T) {
+	// ALTIN VEKTÖRLER — sunucunun kendi çıktısı; diller arası sözleşme. Beklenen imzalar SABİT
+	// yazılır (yeniden hesaplanmaz): oracle'ı burada kurmak, kanonik biçim kayarsa testi de
+	// birlikte kaydırırdı.
+	secret := "cof_idv_000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	vectors := []struct{ raw, canon, sig string }{
+		{"  Jane@Acme.COM ", "jane@acme.com", "323dac99d5f34749a31d2d259656694d5e9d229ee2e082bebeac179d01227ba7"},
+		{"jane@acme.com", "jane@acme.com", "323dac99d5f34749a31d2d259656694d5e9d229ee2e082bebeac179d01227ba7"},
+		// ASCII-dışı harfler OLDUĞU GİBİ kalır (İ ve Ö korunur) — bilinçli, dokümante sınır.
+		{"İSTANBUL@X.com", "İstanbul@x.com", "84b516b5e7726e82f5ac7ac39503c02536a3ef0d9aafa40c97d6268c2d83ee14"},
+		{"Ömer@Example.COM", "Ömer@example.com", "a7270723fac1793d032910ea1231939a8f9d5c3cab49049b243e875a671f0297"},
+		{"\t\r\n\v\f a@b.co \t\n", "a@b.co", "7c41ce285323036c431de959bc0ef1388be7a5e9767add221e73496d3c8297a2"},
+	}
+	for _, v := range vectors {
+		if got := CanonicalIdentityEmail(v.raw); got != v.canon {
+			t.Fatalf("kanonik biçim yanlış: %q → %q, beklenen %q", v.raw, got, v.canon)
+		}
+		got, err := SignIdentity(v.raw, secret)
+		if err != nil {
+			t.Fatalf("SignIdentity(%q) beklenmedik hata: %v", v.raw, err)
+		}
+		if got != v.sig {
+			t.Fatalf("imza yanlış: %q → %s, beklenen %s", v.raw, got, v.sig)
+		}
+	}
+}
