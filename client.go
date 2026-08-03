@@ -481,3 +481,81 @@ func SignIdentity(email, secret string) (string, error) {
 	mac.Write([]byte(canonical))
 	return hex.EncodeToString(mac.Sum(nil)), nil
 }
+
+// SignIdentityJwtOptions, SignIdentityJwt için isteğe bağlı ayarlar.
+type SignIdentityJwtOptions struct {
+	// TTLSeconds, token ömrü (varsayılan 3600). Kısa tutun — JWT'nin bütün anlamı budur.
+	TTLSeconds int
+	// Name, GÜVENİLİR görünen ad. Tarayıcıdan gelen addan farkı: bu imzalıdır.
+	Name string
+	// Attributes, GÜVENİLİR ziyaretçi öznitelikleri (plan, segments, sipariş sayısı…).
+	// `$`/`_` ile başlayan anahtarlar sunucunun kendi güven işaretlerine ayrılmıştır ve düşer.
+	Attributes map[string]any
+	// Now, "şimdi"yi geçersiz kılar. YALNIZ testler için.
+	Now time.Time
+}
+
+// SignIdentityJwt, giriş yapmış kullanıcının kimliğini KISA ÖMÜRLÜ bir HS256 JWT olarak imzalar.
+//
+// SignIdentity YERİNE NİÇİN BU: düz HMAC imzası e-postanın SAF bir fonksiyonudur — son-kullanma
+// tarihi yoktur, oturuma/cihaza bağlı değildir. Bir kez sızarsa o kişi olarak SONSUZA DEK ve HER
+// cihazdan davranılabilir; iptalin tek yolu çalışma alanının anahtarını döndürmek, yani BÜTÜN
+// kullanıcıları aynı anda kırmak. JWT `exp` taşır: sızan token kendiliğinden ölür.
+//
+// İkinci kazanç güvendir: token'daki Name ve Attributes SİZİN backend'inizde imzalanır. Tarayıcıdan
+// gelen öznitelik yalnız bir İDDİA'dır — doğrulanmış bir ziyaretçi bile segments:["vip"] iddia edip
+// öncelikli kuyruğa girebilir. İmzalı olan taklit EDİLEMEZ.
+//
+// Çalışma alanı 'hmac' (geçiş) kipindeyken iki biçim de kabul edilir; sayfa sayfa geçebilirsiniz.
+// Geçiş bitince kipi 'jwt' yapın — süresiz imzaları kabul etmeyi asıl o durdurur.
+//
+// FAIL-CLOSED: boş e-posta İMZALANMAZ (SignIdentity ile aynı kural).
+func SignIdentityJwt(email, secret string, opts *SignIdentityJwtOptions) (string, error) {
+	canonical := CanonicalIdentityEmail(email)
+	if canonical == "" {
+		return "", errors.New("nsupp: SignIdentityJwt: email is empty — nothing to sign; read it from the logged-in session before calling")
+	}
+	if opts == nil {
+		opts = &SignIdentityJwtOptions{}
+	}
+	now := opts.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	ttl := opts.TTLSeconds
+	if ttl < 1 {
+		ttl = 3600
+	}
+	claims := map[string]any{
+		"sub": canonical,
+		"iat": now.Unix(),
+		"exp": now.Unix() + int64(ttl),
+	}
+	if n := strings.TrimSpace(opts.Name); n != "" {
+		claims["name"] = n
+	}
+	if len(opts.Attributes) > 0 {
+		attrs := map[string]any{}
+		for k, v := range opts.Attributes {
+			key := strings.TrimSpace(k)
+			// Sessizce göndermek "ayarladım ama hiçbir şey olmadı" hatasının başlangıcıdır: sunucu
+			// bu önekleri zaten reddeder, o hâlde burada düşürüp sürprizi ortadan kaldırırız.
+			if key == "" || strings.HasPrefix(key, "$") || strings.HasPrefix(key, "_") || v == nil {
+				continue
+			}
+			attrs[key] = v
+		}
+		if len(attrs) > 0 {
+			claims["attributes"] = attrs
+		}
+	}
+	payload, err := json.Marshal(claims)
+	if err != nil {
+		return "", fmt.Errorf("nsupp: SignIdentityJwt: attributes could not be encoded: %w", err)
+	}
+	b64 := base64.RawURLEncoding.EncodeToString
+	signingInput := b64([]byte(`{"alg":"HS256","typ":"JWT"}`)) + "." + b64(payload)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(signingInput))
+	return signingInput + "." + b64(mac.Sum(nil)), nil
+}

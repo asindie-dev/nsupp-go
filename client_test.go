@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 )
 
 type call struct {
@@ -225,5 +227,58 @@ func TestSignIdentity(t *testing.T) {
 		if got != v.sig {
 			t.Fatalf("imza yanlış: %q → %s, beklenen %s", v.raw, got, v.sig)
 		}
+	}
+}
+
+func TestSignIdentityJwt(t *testing.T) {
+	// 0214 — JWT: kanonik sub + exp/iat + ayrılmış öneklerin İMZALANMAMASI.
+	secret := "cof_idv_000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	now := time.UnixMilli(1800000000000)
+	tok, err := SignIdentityJwt("  Jane@Acme.COM ", secret, &SignIdentityJwtOptions{
+		TTLSeconds: 900,
+		Name:       "  Jane  ",
+		Attributes: map[string]any{"plan": "plus", "$verified": true, "_x": 1},
+		Now:        now,
+	})
+	if err != nil {
+		t.Fatalf("SignIdentityJwt: %v", err)
+	}
+	parts := strings.Split(tok, ".")
+	if len(parts) != 3 {
+		t.Fatalf("üç parçalı token beklenir, %d geldi", len(parts))
+	}
+	var header map[string]string
+	raw, _ := base64.RawURLEncoding.DecodeString(parts[0])
+	if err := json.Unmarshal(raw, &header); err != nil || header["alg"] != "HS256" || header["typ"] != "JWT" {
+		t.Fatalf("başlık HS256/JWT değil: %s", raw)
+	}
+	var claims map[string]any
+	raw, _ = base64.RawURLEncoding.DecodeString(parts[1])
+	if err := json.Unmarshal(raw, &claims); err != nil {
+		t.Fatalf("gövde çözülemedi: %v", err)
+	}
+	if claims["sub"] != "jane@acme.com" {
+		t.Errorf("sub kanonik değil: %v", claims["sub"])
+	}
+	if claims["iat"] != float64(now.Unix()) || claims["exp"] != float64(now.Unix()+900) {
+		t.Errorf("iat/exp yanlış: %v %v", claims["iat"], claims["exp"])
+	}
+	if claims["name"] != "Jane" {
+		t.Errorf("ad kırpılmadı: %v", claims["name"])
+	}
+	// Müşterinin backend'i sunucunun güven işaretini İMZALAYAMAZ (ikinci katman sunucuda).
+	attrs, _ := claims["attributes"].(map[string]any)
+	if len(attrs) != 1 || attrs["plan"] != "plus" {
+		t.Errorf("ayrılmış önekler imzaya girdi: %v", attrs)
+	}
+	// İmza gerçekten hesaplanıyor mu — bağımsız hesap.
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(parts[0] + "." + parts[1]))
+	if parts[2] != base64.RawURLEncoding.EncodeToString(mac.Sum(nil)) {
+		t.Error("imza uyuşmadı")
+	}
+	// FAIL-CLOSED: boş e-posta imzalanmaz.
+	if _, err := SignIdentityJwt("   ", secret, nil); err == nil {
+		t.Error("boş e-postada hata bekleniyordu")
 	}
 }
