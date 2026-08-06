@@ -59,7 +59,7 @@ type Client struct {
 // New — bir istemci kurar.
 func New(cfg Config) (*Client, error) {
 	if cfg.Identifier == "" || cfg.Secret == "" {
-		return nil, fmt.Errorf("nsupp: Identifier ve Secret gerekli")
+		return nil, fmt.Errorf("nsupp: Identifier and Secret are required")
 	}
 	base := cfg.BaseURL
 	if base == "" {
@@ -162,7 +162,7 @@ func (c *Client) Website(websiteID ...string) (*WebsiteScope, error) {
 		id = websiteID[0]
 	}
 	if id == "" {
-		return nil, fmt.Errorf("nsupp: websiteID gerekli (veya Config.WebsiteID verin)")
+		return nil, fmt.Errorf("nsupp: websiteID is required (or set Config.WebsiteID)")
 	}
 	return &WebsiteScope{client: c, WebsiteID: id}, nil
 }
