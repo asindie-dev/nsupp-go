@@ -315,6 +315,9 @@ func (w *WebsiteScope) ListAuditEvents(query map[string]string) (any, error) {
 // ListTeamChatMessages, ekibin GENEL kanalını okur. KAPSAM BİLEREK DAR: özel gruplar ve birebir
 // mesajlar API'de YOKTUR — o kanalların üyeliği KİŞİ kimliğine bağlıdır, API anahtarının arkasında
 // kişi yoktur. Silinen mesaj yerinde kalır (content boş, deleted true) — akışta delik açılmaz.
+//
+// Sayfalama imleci ISO damgadır: "after" ileri (poll), "before" geriye (geçmiş) yürür. Bir sonraki
+// "before" = önceki sayfanın en eski created_at'i; sayfa limit'ten kısaysa başa ulaşılmıştır.
 func (w *WebsiteScope) ListTeamChatMessages(query map[string]string) (any, error) {
 	return w.Request("GET", "/team-chat", &RequestOptions{Query: query})
 }
