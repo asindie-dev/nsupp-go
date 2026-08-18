@@ -329,6 +329,85 @@ func (w *WebsiteScope) PostTeamChatMessage(content string) (any, error) {
 	return w.Request("POST", "/team-chat", &RequestOptions{Body: map[string]any{"content": content}})
 }
 
+// PostTeamChannelMessage, belirli bir KANALA yazar. Uygulaman o kanalın ÜYESİ olmalıdır
+// ("not_in_channel"); genel kanal tek istisnadır. "website:team:chat:public" scope'uyla AÇIK
+// kanallara üyeliksiz de yazılır — özel kanal yine üyelik ister. Gövdeye "blocks" koyarsan düğme
+// çizilir; "post_at" mesajı kuyruğa alır (en çok 120 gün) ve scheduled_id döner. Kanal başına
+// yaklaşık saniyede bir yazma sınırı vardır; aşılırsa 429 + Retry-After gelir.
+func (w *WebsiteScope) PostTeamChannelMessage(channelID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/channels/"+url.PathEscape(channelID)+"/messages", &RequestOptions{Body: body})
+}
+
+// SendTeamDirectMessage, bir KİŞİYE uygulama olarak DM yazar. DM kimliği ÜYE KÜMESİNDEN türediği
+// için tek çağrı yeter (Slack iki çağrı ister). Bota DM yazılamaz: iki otomasyonun birbirine yanıt
+// vermesi bir döngüdür, özellik değil.
+func (w *WebsiteScope) SendTeamDirectMessage(userID, content string) (any, error) {
+	return w.Request("POST", "/team-chat/dm", &RequestOptions{Body: map[string]any{"user_id": userID, "content": content}})
+}
+
+// PostTeamEphemeral, YALNIZ BİR KİŞİNİN gördüğü bir mesaj yazar. İki taraf da kanalda olmalıdır:
+// göremediği bir kanalın İÇİNDE birine mesaj göstermek, o kanalın varlığını sızdırırdı.
+func (w *WebsiteScope) PostTeamEphemeral(channelID, userID, content string) (any, error) {
+	return w.Request("POST", "/team-chat/channels/"+url.PathEscape(channelID)+"/ephemeral",
+		&RequestOptions{Body: map[string]any{"user_id": userID, "content": content}})
+}
+
+// UpdateTeamChatMessage, KENDİ yazdığın mesajı düzenler. Başkasının mesajı 403 döner — bir
+// otomasyonun insanın sözünü değiştirmesi geçmişi sessizce yeniden yazmaktır.
+func (w *WebsiteScope) UpdateTeamChatMessage(messageID, content string) (any, error) {
+	return w.Request("PATCH", "/team-chat/"+url.PathEscape(messageID), &RequestOptions{Body: map[string]any{"content": content}})
+}
+
+// DeleteTeamChatMessage, KENDİ mesajını siler. Arşivli kanalda düzenleme kapalıdır ama silme açıktır.
+func (w *WebsiteScope) DeleteTeamChatMessage(messageID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/"+url.PathEscape(messageID), nil)
+}
+
+// OpenTeamView, tıklamadan gelen trigger_id ile bir pencere açar. Tetikleyici GÖNDERİLDİKTEN
+// 3 SANİYE sonra ölür: bunu, tıklamayı 200 ile yanıtlamadan ÖNCE çağır. Pencerenin içeriği SENİN
+// sayfandır (iframe), bir görünüm JSON'u değil.
+func (w *WebsiteScope) OpenTeamView(triggerID string, view map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/views/open", &RequestOptions{Body: map[string]any{"trigger_id": triggerID, "view": view}})
+}
+
+// PublishTeamAppHome, bir kişinin App Home sekmesini yayınlar. Görünüm KİŞİ BAŞINADIR ve en çok
+// 100 blok taşır; boş bir blok dizisi sekmeyi temizler.
+func (w *WebsiteScope) PublishTeamAppHome(userID string, blocks []any) (any, error) {
+	return w.Request("POST", "/team-chat/views/publish", &RequestOptions{
+		Body: map[string]any{"user_id": userID, "view": map[string]any{"type": "home", "blocks": blocks}},
+	})
+}
+
+// SearchTeamChat, ekip mesajlarında arar (çok kanallı; sonuç hangi kanalda olduğunu taşır).
+func (w *WebsiteScope) SearchTeamChat(query map[string]string) (any, error) {
+	return w.Request("GET", "/team-chat/search", &RequestOptions{Query: query})
+}
+
+// ListTeamChatReplies, bir mesajın thread yanıtlarını döndürür.
+func (w *WebsiteScope) ListTeamChatReplies(messageID string) (any, error) {
+	return w.Request("GET", "/team-chat/"+url.PathEscape(messageID)+"/replies", nil)
+}
+
+// PostTeamChatReply, thread'e yanıt yazar.
+func (w *WebsiteScope) PostTeamChatReply(messageID, content string) (any, error) {
+	return w.Request("POST", "/team-chat/"+url.PathEscape(messageID)+"/replies", &RequestOptions{Body: map[string]any{"content": content}})
+}
+
+// ReactToTeamChatMessage, tepki ekler/kaldırır. Emoji KODU gönderilir ("white_check_mark"), karakter değil.
+func (w *WebsiteScope) ReactToTeamChatMessage(messageID, emoji string) (any, error) {
+	return w.Request("POST", "/team-chat/"+url.PathEscape(messageID)+"/reactions", &RequestOptions{Body: map[string]any{"emoji": emoji}})
+}
+
+// PinTeamChatMessage, mesajı sabitler / sabitlemeyi kaldırır.
+func (w *WebsiteScope) PinTeamChatMessage(messageID string) (any, error) {
+	return w.Request("POST", "/team-chat/"+url.PathEscape(messageID)+"/pin", nil)
+}
+
+// ForwardTeamChatMessage, mesajı başka bir kanala iletir.
+func (w *WebsiteScope) ForwardTeamChatMessage(messageID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/"+url.PathEscape(messageID)+"/forward", &RequestOptions{Body: body})
+}
+
 // Kişisel veri paylaşımı (0179) — scope: website:disclosure.
 
 // GetDisclosure, operatörün müşteriyi doğrulayıp doğrulamadığını ve hangi siparişlerin
