@@ -214,8 +214,10 @@ func (w *WebsiteScope) ListConversations(query map[string]string) (any, error) {
 func (w *WebsiteScope) GetConversation(sid string) (any, error) {
 	return w.Request("GET", "/conversation/"+url.PathEscape(sid), nil)
 }
-func (w *WebsiteScope) GetMessages(sid string) (any, error) {
-	return w.Request("GET", "/conversation/"+url.PathEscape(sid)+"/messages", nil)
+// GetMessages, bir konuşmanın mesajlarını döner. İmleç ÇİFTTİR: before (en eski mesajın
+// timestamp'i) + before_id (aynı mesajın fingerprint'i) — yalnız damga aynı ms'deki mesajı atlar.
+func (w *WebsiteScope) GetMessages(sid string, query map[string]string) (any, error) {
+	return w.Request("GET", "/conversation/"+url.PathEscape(sid)+"/messages", &RequestOptions{Query: query})
 }
 func (w *WebsiteScope) SendMessage(sid, content string) (any, error) {
 	return w.Request("POST", "/conversation/"+url.PathEscape(sid)+"/message", &RequestOptions{Body: map[string]any{"content": content}})
