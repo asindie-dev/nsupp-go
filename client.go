@@ -378,6 +378,19 @@ func (w *WebsiteScope) PublishTeamAppHome(userID string, blocks []any) (any, err
 	})
 }
 
+// ListTeamChatChannels, uygulamanın görebildiği ekip kanallarını listeler (Slack
+// conversations.list karşılığı). Üyesi olunan her kanal + genel kanal (üyelik örtük) +
+// website:team:chat:public onaylıysa açık kanallar; birebir mesajlar HİÇBİR koşulda listelenmez.
+func (w *WebsiteScope) ListTeamChatChannels(query map[string]string) (any, error) {
+	return w.Request("GET", "/team-chat/channels", &RequestOptions{Query: query})
+}
+
+// GetTeamChatChannel, tek bir ekip kanalının bilgisini döner (Slack conversations.info).
+// Göremediğin kanal 404'tür.
+func (w *WebsiteScope) GetTeamChatChannel(channelID string) (any, error) {
+	return w.Request("GET", "/team-chat/channels/"+url.PathEscape(channelID), nil)
+}
+
 // SearchTeamChat, ekip mesajlarında arar (çok kanallı; sonuç hangi kanalda olduğunu taşır).
 func (w *WebsiteScope) SearchTeamChat(query map[string]string) (any, error) {
 	return w.Request("GET", "/team-chat/search", &RequestOptions{Query: query})
