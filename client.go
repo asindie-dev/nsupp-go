@@ -30,7 +30,14 @@ type Transport func(method, url string, headers map[string]string, body []byte) 
 type Config struct {
 	Identifier string
 	Secret     string
-	Tier       string // "plugin" (varsayılan) | "website"
+	// AccessToken — OAuth USER access token (`POST /v1/oauth/token`). Sent as
+	// `Authorization: Bearer …` (RFC 6750); NO `X-Cof-Tier` header is sent, because the Bearer
+	// scheme already says what the credential is and a proprietary header would break every
+	// standard OAuth client. A user token reaches only the workspaces the consenting person
+	// belongs to AND your app is installed in, carries the scopes that person consented to, and
+	// stops working the moment they revoke your app. Use this OR Identifier+Secret.
+	AccessToken string
+	Tier        string // "plugin" (varsayılan) | "website"
 	BaseURL    string // varsayılan https://api.nsupp.com/cof
 	WebsiteID  string
 	HTTPClient *http.Client
@@ -51,6 +58,7 @@ func (e *Error) Error() string { return fmt.Sprintf("nsupp: %s (status %d)", e.M
 type Client struct {
 	baseURL   string
 	auth      string
+	bearer    bool
 	tier      string
 	websiteID string
 	transport Transport
@@ -58,8 +66,8 @@ type Client struct {
 
 // New — bir istemci kurar.
 func New(cfg Config) (*Client, error) {
-	if cfg.Identifier == "" || cfg.Secret == "" {
-		return nil, fmt.Errorf("nsupp: Identifier and Secret are required")
+	if cfg.AccessToken == "" && (cfg.Identifier == "" || cfg.Secret == "") {
+		return nil, fmt.Errorf("nsupp: pass either AccessToken (OAuth user token) or Identifier + Secret")
 	}
 	base := cfg.BaseURL
 	if base == "" {
@@ -69,9 +77,14 @@ func New(cfg Config) (*Client, error) {
 	if tier == "" {
 		tier = "plugin"
 	}
+	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(cfg.Identifier+":"+cfg.Secret))
+	if cfg.AccessToken != "" {
+		auth = "Bearer " + cfg.AccessToken
+	}
 	c := &Client{
 		baseURL:   strings.TrimRight(base, "/"),
-		auth:      "Basic " + base64.StdEncoding.EncodeToString([]byte(cfg.Identifier+":"+cfg.Secret)),
+		auth:      auth,
+		bearer:    cfg.AccessToken != "",
 		tier:      tier,
 		websiteID: cfg.WebsiteID,
 		transport: cfg.Transport,
@@ -119,7 +132,10 @@ func (c *Client) Request(method, path string, opts *RequestOptions) (any, error)
 		}
 	}
 	method = strings.ToUpper(method)
-	headers := map[string]string{"Authorization": c.auth, "X-Cof-Tier": tier}
+	headers := map[string]string{"Authorization": c.auth}
+	if !c.bearer {
+		headers["X-Cof-Tier"] = tier
+	}
 	if opts != nil && opts.Body != nil && method != "GET" && method != "HEAD" {
 		b, err := json.Marshal(opts.Body)
 		if err != nil {

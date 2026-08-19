@@ -71,6 +71,33 @@ func TestAuthAndEnvelope(t *testing.T) {
 	}
 }
 
+// TestOAuthUserTokenBearer — 🔴🔴 OAuth KULLANICI JETONU: `Bearer` gönderilir ve `X-Cof-Tier`
+// GÖNDERİLMEZ (RFC 6750). Şema kimlik bilgisinin cinsini zaten söyler; bize özel bir başlık
+// istemek, hiçbir hazır OAuth istemcisinin gönderemeyeceği bir şey istemek olurdu.
+func TestOAuthUserTokenBearer(t *testing.T) {
+	var calls []call
+	c, err := New(Config{AccessToken: "ut_abc", Transport: mockTransport(&calls, []struct {
+		status int
+		body   string
+	}{{200, `{"error":false,"data":[]}`}})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Request("GET", "/v1/website/pk1/team-chat/channels", nil); err != nil {
+		t.Fatal(err)
+	}
+	if calls[0].headers["Authorization"] != "Bearer ut_abc" {
+		t.Fatalf("Bearer gönderilmedi: %s", calls[0].headers["Authorization"])
+	}
+	if _, var_ := calls[0].headers["X-Cof-Tier"]; var_ {
+		t.Fatal("Bearer ile X-Cof-Tier gönderildi")
+	}
+	// 🔴 İKİ KİMLİK BİLGİSİNDEN BİRİ ZORUNLU (sessiz anonim istemci yok).
+	if _, err := New(Config{}); err == nil {
+		t.Fatal("kimlik bilgisiz istemci kuruldu")
+	}
+}
+
 func TestErrorEnvelope(t *testing.T) {
 	var calls []call
 	c, _ := New(Config{Identifier: "i", Secret: "s", Transport: mockTransport(&calls, []struct {
