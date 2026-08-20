@@ -390,6 +390,18 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// ListTeamCanvasComments returns every comment on a canvas, oldest first. Comments hang off a
+// BLOCK, not the document - key your mirror on block_id.
+func (w *WebsiteScope) ListTeamCanvasComments(docID string) (any, error) {
+	return w.Request("GET", "/team-chat/docs/"+url.PathEscape(docID)+"/comments", nil)
+}
+
+// CommentOnTeamCanvasBlock comments on one block. READ access is enough - commenting does not
+// change the document. The block must exist in the body, otherwise 404 block_not_found.
+func (w *WebsiteScope) CommentOnTeamCanvasBlock(docID, blockID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/blocks/"+url.PathEscape(blockID)+"/comments", &RequestOptions{Body: body})
+}
+
 // SetTeamCanvasCover sets (or removes) the canvas cover image. The image is NOT uploaded here:
 // upload it first and pass the resulting URL. Only a URL from your own account is accepted -
 // a cover republishes that file inside your canvas. Pass nil to remove it (object deleted too).
