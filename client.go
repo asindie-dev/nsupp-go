@@ -390,6 +390,17 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// ListTeamCanvasVersions returns the version history, newest first. The list carries NO bodies -
+// fetch the one you need with GetTeamCanvasVersion. restored_from marks a restore.
+func (w *WebsiteScope) ListTeamCanvasVersions(docID string) (any, error) {
+	return w.Request("GET", "/team-chat/docs/"+url.PathEscape(docID)+"/versions", nil)
+}
+
+// GetTeamCanvasVersion returns one version with its full body.
+func (w *WebsiteScope) GetTeamCanvasVersion(docID, versionID string) (any, error) {
+	return w.Request("GET", "/team-chat/docs/"+url.PathEscape(docID)+"/versions/"+url.PathEscape(versionID), nil)
+}
+
 // ListTeamCanvasComments returns every comment on a canvas, oldest first. Comments hang off a
 // BLOCK, not the document - key your mirror on block_id.
 func (w *WebsiteScope) ListTeamCanvasComments(docID string) (any, error) {
