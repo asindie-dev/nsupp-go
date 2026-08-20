@@ -390,6 +390,13 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// ListTeamCanvasTemplates returns the built-in canvas templates with bodies already resolved to
+// English text - pass a body straight to canvas creation. Templates live in code, not in your
+// account, so every workspace sees the same set.
+func (w *WebsiteScope) ListTeamCanvasTemplates() (any, error) {
+	return w.Request("GET", "/team-chat/templates", nil)
+}
+
 // GetTeamFile returns the details of one file (the info card). Visibility comes from the files
 // plane itself, so a file you cannot see answers 404. No size/sha: the plane does not store them
 // and a canvas or list has no bytes at all.
