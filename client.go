@@ -592,6 +592,11 @@ func (w *WebsiteScope) ListTeamCanvasTemplates() (any, error) {
 // GetTeamFile returns the details of one file (the info card). Visibility comes from the files
 // plane itself, so a file you cannot see answers 404. No size/sha: the plane does not store them
 // and a canvas or list has no bytes at all.
+//
+// For plain-text files you also get preview (first lines), lines (the real total), lines_more
+// (what the preview leaves out) and preview_is_truncated. The server reads the file for you
+// because url is a storage address, not an authenticated endpoint — a browser cannot even read it
+// cross-origin. All four are null for anything that is not text.
 func (w *WebsiteScope) GetTeamFile(fileID string) (any, error) {
 	return w.Request("GET", "/team-chat/files/"+url.PathEscape(fileID), nil)
 }
