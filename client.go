@@ -440,6 +440,12 @@ func (w *WebsiteScope) DeleteTeamListView(listID, viewID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID)+"/views/"+url.PathEscape(viewID), nil)
 }
 
+// GetTeamAssignedItems returns every row, across every visible list, where a person column
+// names this user. Takes an EXPLICIT user id: an API key has no "me".
+func (w *WebsiteScope) GetTeamAssignedItems(userID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/assigned?user_id="+url.QueryEscape(userID), nil)
+}
+
 // GetTeamListFields returns the list's columns. A row's fields object is keyed by column ID,
 // so without this you receive values you cannot interpret. Match on key, display label.
 func (w *WebsiteScope) GetTeamListFields(listID string) (any, error) {
