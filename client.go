@@ -440,6 +440,12 @@ func (w *WebsiteScope) DeleteTeamListView(listID, viewID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID)+"/views/"+url.PathEscape(viewID), nil)
 }
 
+// GetTeamListFields returns the list's columns. A row's fields object is keyed by column ID,
+// so without this you receive values you cannot interpret. Match on key, display label.
+func (w *WebsiteScope) GetTeamListFields(listID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/fields", nil)
+}
+
 // GetTeamListViews returns the list's views with their own item counts. Counts are computed,
 // never stored. open/completed only exist on a to-do list.
 func (w *WebsiteScope) GetTeamListViews(listID string) (any, error) {
