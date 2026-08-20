@@ -390,6 +390,18 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// CopyTeamCanvas copies a canvas into a NEW, independent document. Seeing it is enough; shares,
+// access level, template flag, channel and cover are NOT carried over.
+func (w *WebsiteScope) CopyTeamCanvas(docID string) (any, error) {
+	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/copy", nil)
+}
+
+// DeleteTeamCanvas deletes a canvas. Requires edit access; comments, reactions, versions, shares
+// and stars go with it and it cannot be undone.
+func (w *WebsiteScope) DeleteTeamCanvas(docID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/docs/"+url.PathEscape(docID), nil)
+}
+
 // ListTeamCanvasVersions returns the version history, newest first. The list carries NO bodies -
 // fetch the one you need with GetTeamCanvasVersion. restored_from marks a restore.
 func (w *WebsiteScope) ListTeamCanvasVersions(docID string) (any, error) {
