@@ -423,6 +423,27 @@ func (w *WebsiteScope) RevokeTeamFilePublicLink(fileID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/files/"+url.PathEscape(fileID)+"/public", nil)
 }
 
+// GetTeamListShares returns who a list is open to, plus its access level.
+// Lists and canvases run through ONE permission rule, not two.
+func (w *WebsiteScope) GetTeamListShares(listID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/shares", nil)
+}
+
+// ShareTeamList opens a list to a channel your app can see. Channels only, never people:
+// there is no person behind an API key. The same channel twice UPDATES the permission.
+func (w *WebsiteScope) ShareTeamList(listID, channelID string, canEdit *bool) (any, error) {
+	body := map[string]any{"channel_id": channelID}
+	if canEdit != nil {
+		body["can_edit"] = *canEdit
+	}
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/shares", &RequestOptions{Body: body})
+}
+
+// RevokeTeamListShare revokes one share. A share id from another list answers 404.
+func (w *WebsiteScope) RevokeTeamListShare(listID, shareID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID)+"/shares/"+url.PathEscape(shareID), nil)
+}
+
 // ListTeamListItems returns the rows of a list (values keyed by FIELD ID).
 func (w *WebsiteScope) ListTeamListItems(listID string) (any, error) {
 	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/items", nil)
