@@ -390,6 +390,17 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// ShareTeamFilePublicly turns a file into a PUBLIC link (no login). The link points at our
+// gateway, never at raw storage - which is what makes revoking real. Idempotent.
+func (w *WebsiteScope) ShareTeamFilePublicly(fileID string) (any, error) {
+	return w.Request("POST", "/team-chat/files/"+url.PathEscape(fileID)+"/public", nil)
+}
+
+// RevokeTeamFilePublicLink revokes the public link; the gateway answers 404 afterwards.
+func (w *WebsiteScope) RevokeTeamFilePublicLink(fileID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/files/"+url.PathEscape(fileID)+"/public", nil)
+}
+
 // ListTeamListItems returns the rows of a list (values keyed by FIELD ID).
 func (w *WebsiteScope) ListTeamListItems(listID string) (any, error) {
 	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/items", nil)
