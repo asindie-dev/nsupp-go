@@ -372,6 +372,12 @@ func (w *WebsiteScope) SetAgentThread(channelID string, patch map[string]any) (a
 }
 
 // ListTeamLists returns the lists in this account. A list is a small database — rows with typed
+// UseTeamCanvasTemplate copies a TEMPLATE canvas into a new, independent canvas: title and
+// blocks only. Shares are not carried over and the copy is not itself a template.
+func (w *WebsiteScope) UseTeamCanvasTemplate(docID string) (any, error) {
+	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/use-template", nil)
+}
+
 // ShareTeamCanvas opens a canvas to a channel. Apps share with a CHANNEL only - a person-share
 // would decide something on that person's behalf and there is no person behind an API key.
 func (w *WebsiteScope) ShareTeamCanvas(docID string, body map[string]any) (any, error) {
