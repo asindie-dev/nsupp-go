@@ -446,6 +446,13 @@ func (w *WebsiteScope) GetTeamAssignedItems(userID string) (any, error) {
 	return w.Request("GET", "/team-chat/lists/assigned?user_id="+url.QueryEscape(userID), nil)
 }
 
+// SetTeamListItemArchived archives a row or restores it. Archiving is NOT deleting: the row
+// stays and only drops out of the default reads. Read back with ?archived=true or ?archived=only.
+func (w *WebsiteScope) SetTeamListItemArchived(listID, itemID string, archived bool) (any, error) {
+	return w.Request("PUT", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID)+"/archived",
+		&RequestOptions{Body: map[string]any{"archived": archived}})
+}
+
 // GetTeamListFields returns the list's columns. A row's fields object is keyed by column ID,
 // so without this you receive values you cannot interpret. Match on key, display label.
 func (w *WebsiteScope) GetTeamListFields(listID string) (any, error) {
