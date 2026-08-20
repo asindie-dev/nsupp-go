@@ -371,6 +371,24 @@ func (w *WebsiteScope) SetAgentThread(channelID string, patch map[string]any) (a
 	return w.Request("POST", "/team-chat/assistant/"+url.PathEscape(channelID), &RequestOptions{Body: patch})
 }
 
+// ListTeamLists returns the lists in this account. A list is a small database — rows with typed
+// columns — not a to-do.
+func (w *WebsiteScope) ListTeamLists() (any, error) {
+	return w.Request("GET", "/team-chat/lists", nil)
+}
+
+// CreateTeamList creates an empty list. Give it columns next: a list with no columns is a table
+// with no shape, so nothing can be written into it yet.
+func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/lists", &RequestOptions{Body: body})
+}
+
+// AddTeamListField adds one typed column. Reusing a key answers 409 rather than overwriting, so
+// data already under a column can never be hidden.
+func (w *WebsiteScope) AddTeamListField(listID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/fields", &RequestOptions{Body: body})
+}
+
 // StreamTeamMessage appends text to a message posted with stream: true. Send ONLY the new chunk —
 // the append happens on our side, because read-modify-write from your side loses a chunk whenever
 // two arrive close together. Always finish with done: true, including on your own error paths.
