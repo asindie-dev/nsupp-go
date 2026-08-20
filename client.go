@@ -430,6 +430,23 @@ func (w *WebsiteScope) UpdateTeamList(listID string, patch map[string]any) (any,
 	return w.Request("PATCH", "/team-chat/lists/"+url.PathEscape(listID), &RequestOptions{Body: patch})
 }
 
+// StartTeamListExport starts a CSV export and returns a job id. The job is already complete
+// (there is no pending phase to poll) and expires after 24 hours.
+func (w *WebsiteScope) StartTeamListExport(listID string) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/export", &RequestOptions{Body: map[string]any{}})
+}
+
+// GetTeamListExport returns job state plus a download_url. A job id from another list answers
+// 404 — the job is asked of the list, not of the id alone. An expired job answers 410.
+func (w *WebsiteScope) GetTeamListExport(listID, jobID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/export/"+url.PathEscape(jobID), nil)
+}
+
+// DownloadTeamListExport returns the CSV bytes. Authenticated on every fetch.
+func (w *WebsiteScope) DownloadTeamListExport(listID, jobID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/export/"+url.PathEscape(jobID)+"/download", nil)
+}
+
 // GetTeamListShares returns who a list is open to, plus its access level.
 // Lists and canvases run through ONE permission rule, not two.
 func (w *WebsiteScope) GetTeamListShares(listID string) (any, error) {
