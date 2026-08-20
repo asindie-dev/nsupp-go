@@ -423,6 +423,13 @@ func (w *WebsiteScope) RevokeTeamFilePublicLink(fileID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/files/"+url.PathEscape(fileID)+"/public", nil)
 }
 
+// UpdateTeamList changes a list's title, description or to-do mode.
+// PARTIAL PATCH: a key you leave out of patch is not touched. A too-long title is refused,
+// never trimmed. todo_mode:true ensures todo_completed/todo_assignee/todo_due_date exist.
+func (w *WebsiteScope) UpdateTeamList(listID string, patch map[string]any) (any, error) {
+	return w.Request("PATCH", "/team-chat/lists/"+url.PathEscape(listID), &RequestOptions{Body: patch})
+}
+
 // GetTeamListShares returns who a list is open to, plus its access level.
 // Lists and canvases run through ONE permission rule, not two.
 func (w *WebsiteScope) GetTeamListShares(listID string) (any, error) {
