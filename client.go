@@ -372,6 +372,18 @@ func (w *WebsiteScope) SetAgentThread(channelID string, patch map[string]any) (a
 }
 
 // ListTeamLists returns the lists in this account. A list is a small database — rows with typed
+// GetTeamCanvas reads a canvas. The body is an ARRAY OF BLOCKS with stable ids, not one blob of
+// HTML: comments and reactions attach to a block, so ids have to survive edits around them.
+func (w *WebsiteScope) GetTeamCanvas(docID string) (any, error) {
+	return w.Request("GET", "/team-chat/docs/"+url.PathEscape(docID), nil)
+}
+
+// UpdateTeamCanvas replaces title, body or both. The body you send is the WHOLE body - keep the
+// ids of blocks you did not touch, or the comments attached to them lose their anchor.
+func (w *WebsiteScope) UpdateTeamCanvas(docID string, body map[string]any) (any, error) {
+	return w.Request("PUT", "/team-chat/docs/"+url.PathEscape(docID), &RequestOptions{Body: body})
+}
+
 // ListTeamFiles returns the files this app can see: lists plus attachments on messages in
 // channels the app can see. There is no separate file store — a file disappears exactly when the
 // list or message holding it does. Newest first; page with after + after_id.
