@@ -423,6 +423,23 @@ func (w *WebsiteScope) RevokeTeamFilePublicLink(fileID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/files/"+url.PathEscape(fileID)+"/public", nil)
 }
 
+// CreateTeamListView creates a SHARED view — everyone with access to the list sees it, which
+// is why it needs edit access. The name is refused above 60 code points, never trimmed.
+func (w *WebsiteScope) CreateTeamListView(listID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/views", &RequestOptions{Body: body})
+}
+
+// UpdateTeamListView applies a partial patch. group_by:null CLEARS the grouping; an omitted
+// key leaves it alone. A view id from another list answers 404.
+func (w *WebsiteScope) UpdateTeamListView(listID, viewID string, patch map[string]any) (any, error) {
+	return w.Request("PATCH", "/team-chat/lists/"+url.PathEscape(listID)+"/views/"+url.PathEscape(viewID), &RequestOptions{Body: patch})
+}
+
+// DeleteTeamListView removes a view. The rows are untouched — a view is a lens, never a container.
+func (w *WebsiteScope) DeleteTeamListView(listID, viewID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID)+"/views/"+url.PathEscape(viewID), nil)
+}
+
 // GetTeamListViews returns the list's views with their own item counts. Counts are computed,
 // never stored. open/completed only exist on a to-do list.
 func (w *WebsiteScope) GetTeamListViews(listID string) (any, error) {
