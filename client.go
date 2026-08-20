@@ -406,6 +406,12 @@ func (w *WebsiteScope) LookupTeamCanvasSections(docID, query string) (any, error
 	return w.Request("GET", yol, nil)
 }
 
+// DeleteTeamFile deletes a file. A message attachment is removed from its message (the message
+// stays); a canvas or list is deleted through its OWN endpoint. Any public link is revoked too.
+func (w *WebsiteScope) DeleteTeamFile(fileID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/files/"+url.PathEscape(fileID), nil)
+}
+
 // ShareTeamFilePublicly turns a file into a PUBLIC link (no login). The link points at our
 // gateway, never at raw storage - which is what makes revoking real. Idempotent.
 func (w *WebsiteScope) ShareTeamFilePublicly(fileID string) (any, error) {
