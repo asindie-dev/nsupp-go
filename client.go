@@ -390,6 +390,13 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// GetTeamFile returns the details of one file (the info card). Visibility comes from the files
+// plane itself, so a file you cannot see answers 404. No size/sha: the plane does not store them
+// and a canvas or list has no bytes at all.
+func (w *WebsiteScope) GetTeamFile(fileID string) (any, error) {
+	return w.Request("GET", "/team-chat/files/"+url.PathEscape(fileID), nil)
+}
+
 // CopyTeamCanvas copies a canvas into a NEW, independent document. Seeing it is enough; shares,
 // access level, template flag, channel and cover are NOT carried over.
 func (w *WebsiteScope) CopyTeamCanvas(docID string) (any, error) {
