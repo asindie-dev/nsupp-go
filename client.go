@@ -372,6 +372,12 @@ func (w *WebsiteScope) SetAgentThread(channelID string, patch map[string]any) (a
 }
 
 // ListTeamLists returns the lists in this account. A list is a small database — rows with typed
+// ShareTeamCanvas opens a canvas to a channel. Apps share with a CHANNEL only - a person-share
+// would decide something on that person's behalf and there is no person behind an API key.
+func (w *WebsiteScope) ShareTeamCanvas(docID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/shares", &RequestOptions{Body: body})
+}
+
 // GetTeamCanvas reads a canvas. The body is an ARRAY OF BLOCKS with stable ids, not one blob of
 // HTML: comments and reactions attach to a block, so ids have to survive edits around them.
 func (w *WebsiteScope) GetTeamCanvas(docID string) (any, error) {
