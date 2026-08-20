@@ -385,6 +385,11 @@ func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
 
 // AddTeamListField adds one typed column. Reusing a key answers 409 rather than overwriting, so
 // data already under a column can never be hidden.
+//
+// A select column's options are objects carrying colour —
+// {"value": "in_progress", "label": "In progress", "color": "purple"}. The cell stores the value,
+// so renaming an option never strands old rows; the colour comes from a closed palette
+// (default "gray") because free hex cannot guarantee a readable chip in both themes.
 func (w *WebsiteScope) AddTeamListField(listID string, body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/fields", &RequestOptions{Body: body})
 }
