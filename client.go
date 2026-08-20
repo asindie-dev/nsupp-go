@@ -390,6 +390,12 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// RevokeTeamCanvasShare revokes one share on a canvas. Requires edit access - the same gate as
+// sharing, because a viewer cutting off other people's access would overrule the owner.
+func (w *WebsiteScope) RevokeTeamCanvasShare(docID, shareID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/docs/"+url.PathEscape(docID)+"/shares/"+url.PathEscape(shareID), nil)
+}
+
 // ListTeamCanvasTemplates returns the built-in canvas templates with bodies already resolved to
 // English text - pass a body straight to canvas creation. Templates live in code, not in your
 // account, so every workspace sees the same set.
