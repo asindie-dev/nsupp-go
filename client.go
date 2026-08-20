@@ -459,6 +459,23 @@ func (w *WebsiteScope) GetTeamListFields(listID string) (any, error) {
 	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/fields", nil)
 }
 
+// GetTeamItemComments returns a row's comment thread, oldest first.
+func (w *WebsiteScope) GetTeamItemComments(listID, itemID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID)+"/comments", nil)
+}
+
+// AddTeamItemComment comments on a ROW (never a cell). Empty is refused; cap 2000 characters —
+// the same limit canvas comments use.
+func (w *WebsiteScope) AddTeamItemComment(listID, itemID, body string) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID)+"/comments",
+		&RequestOptions{Body: map[string]any{"body": body}})
+}
+
+// DeleteTeamItemComment removes one comment. An id from another row answers 404.
+func (w *WebsiteScope) DeleteTeamItemComment(listID, itemID, commentID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID)+"/comments/"+url.PathEscape(commentID), nil)
+}
+
 // GetTeamListVersions returns the version history, newest first. Consecutive writes by the
 // same author inside a short window are MERGED; a restore never merges.
 func (w *WebsiteScope) GetTeamListVersions(listID string) (any, error) {
