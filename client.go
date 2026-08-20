@@ -390,6 +390,13 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// GetTeamFileUploadURL is step 1 of an upload: it returns upload_url and file_id. PUT the raw
+// bytes to that URL (the URL is signed and short-lived, so it needs no auth header). The
+// extension is checked here, before you send anything.
+func (w *WebsiteScope) GetTeamFileUploadURL(filename string) (any, error) {
+	return w.Request("POST", "/team-chat/files/upload-url", &RequestOptions{Body: map[string]any{"filename": filename}})
+}
+
 // RevokeTeamCanvasShare revokes one share on a canvas. Requires edit access - the same gate as
 // sharing, because a viewer cutting off other people's access would overrule the owner.
 func (w *WebsiteScope) RevokeTeamCanvasShare(docID, shareID string) (any, error) {
