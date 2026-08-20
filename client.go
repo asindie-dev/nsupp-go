@@ -390,6 +390,22 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// EditTeamCanvas edits a canvas SECTION BY SECTION instead of replacing the whole body - which is
+// how you avoid the read-modify-write race. Changes apply IN ORDER and it is ALL OR NOTHING.
+func (w *WebsiteScope) EditTeamCanvas(docID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/edit", &RequestOptions{Body: body})
+}
+
+// LookupTeamCanvasSections finds sections by type and/or text; the ids are what EditTeamCanvas
+// takes as section_id. An unknown type is an error, not an empty result.
+func (w *WebsiteScope) LookupTeamCanvasSections(docID, query string) (any, error) {
+	yol := "/team-chat/docs/" + url.PathEscape(docID) + "/sections"
+	if query != "" {
+		yol += "?" + query
+	}
+	return w.Request("GET", yol, nil)
+}
+
 // ShareTeamFilePublicly turns a file into a PUBLIC link (no login). The link points at our
 // gateway, never at raw storage - which is what makes revoking real. Idempotent.
 func (w *WebsiteScope) ShareTeamFilePublicly(fileID string) (any, error) {
