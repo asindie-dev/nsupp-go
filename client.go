@@ -363,6 +363,21 @@ func (w *WebsiteScope) SendTeamDirectMessage(userID, content string) (any, error
 	return w.Request("POST", "/team-chat/dm", &RequestOptions{Body: map[string]any{"user_id": userID, "content": content}})
 }
 
+// SetAgentThread sets the agent surface of one DM: title, transient status line, suggested prompts.
+// Partial update: put ONLY the keys you want to change into patch. A nil value CLEARS a field;
+// leaving the key out leaves it alone — if those meant the same thing, taking a status line back
+// down would be impossible.
+func (w *WebsiteScope) SetAgentThread(channelID string, patch map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/assistant/"+url.PathEscape(channelID), &RequestOptions{Body: patch})
+}
+
+// StreamTeamMessage appends text to a message posted with stream: true. Send ONLY the new chunk —
+// the append happens on our side, because read-modify-write from your side loses a chunk whenever
+// two arrive close together. Always finish with done: true, including on your own error paths.
+func (w *WebsiteScope) StreamTeamMessage(messageID string, patch map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/messages/"+url.PathEscape(messageID)+"/stream", &RequestOptions{Body: patch})
+}
+
 // PostTeamEphemeral, YALNIZ BİR KİŞİNİN gördüğü bir mesaj yazar. İki taraf da kanalda olmalıdır:
 // göremediği bir kanalın İÇİNDE birine mesaj göstermek, o kanalın varlığını sızdırırdı.
 func (w *WebsiteScope) PostTeamEphemeral(channelID, userID, content string) (any, error) {
