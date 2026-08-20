@@ -372,6 +372,13 @@ func (w *WebsiteScope) SetAgentThread(channelID string, patch map[string]any) (a
 }
 
 // ListTeamLists returns the lists in this account. A list is a small database — rows with typed
+// ListTeamFiles returns the files this app can see: lists plus attachments on messages in
+// channels the app can see. There is no separate file store — a file disappears exactly when the
+// list or message holding it does. Newest first; page with after + after_id.
+func (w *WebsiteScope) ListTeamFiles(query map[string]string) (any, error) {
+	return w.Request("GET", "/team-chat/files", &RequestOptions{Query: query})
+}
+
 // columns — not a to-do.
 func (w *WebsiteScope) ListTeamLists() (any, error) {
 	return w.Request("GET", "/team-chat/lists", nil)
