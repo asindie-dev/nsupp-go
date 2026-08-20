@@ -390,6 +390,36 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// ListTeamListItems returns the rows of a list (values keyed by FIELD ID).
+func (w *WebsiteScope) ListTeamListItems(listID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/items", nil)
+}
+
+// GetTeamListItem returns one row. A row id from another list answers 404.
+func (w *WebsiteScope) GetTeamListItem(listID, itemID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID), nil)
+}
+
+// CreateTeamListItem adds a row. Unknown field ids are dropped; values are normalised.
+func (w *WebsiteScope) CreateTeamListItem(listID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/items", &RequestOptions{Body: body})
+}
+
+// UpdateTeamListItem updates a row. PARTIAL - a field you do not send is left alone.
+func (w *WebsiteScope) UpdateTeamListItem(listID, itemID string, body map[string]any) (any, error) {
+	return w.Request("PATCH", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID), &RequestOptions{Body: body})
+}
+
+// DeleteTeamListItem deletes one row.
+func (w *WebsiteScope) DeleteTeamListItem(listID, itemID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID)+"/items/"+url.PathEscape(itemID), nil)
+}
+
+// DeleteTeamListItems deletes many rows; the answer names deleted AND not-found ids.
+func (w *WebsiteScope) DeleteTeamListItems(listID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/items/delete", &RequestOptions{Body: body})
+}
+
 // GetTeamFileUploadURL is step 1 of an upload: it returns upload_url and file_id. PUT the raw
 // bytes to that URL (the URL is signed and short-lived, so it needs no auth header). The
 // extension is checked here, before you send anything.
