@@ -459,6 +459,18 @@ func (w *WebsiteScope) GetTeamListFields(listID string) (any, error) {
 	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/fields", nil)
 }
 
+// GetTeamListVersions returns the version history, newest first. Consecutive writes by the
+// same author inside a short window are MERGED; a restore never merges.
+func (w *WebsiteScope) GetTeamListVersions(listID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/versions", nil)
+}
+
+// GetTeamListVersion returns one version with its full snapshot: columns and rows TOGETHER
+// (archived rows included), so a restore can never mix columns and cells from two moments.
+func (w *WebsiteScope) GetTeamListVersion(listID, versionID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/versions/"+url.PathEscape(versionID), nil)
+}
+
 // GetTeamListViews returns the list's views with their own item counts. Counts are computed,
 // never stored. open/completed only exist on a to-do list.
 func (w *WebsiteScope) GetTeamListViews(listID string) (any, error) {
