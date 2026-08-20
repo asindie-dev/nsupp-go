@@ -390,6 +390,13 @@ func (w *WebsiteScope) CreateTeamCanvas(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/docs", &RequestOptions{Body: body})
 }
 
+// SetTeamCanvasCover sets (or removes) the canvas cover image. The image is NOT uploaded here:
+// upload it first and pass the resulting URL. Only a URL from your own account is accepted -
+// a cover republishes that file inside your canvas. Pass nil to remove it (object deleted too).
+func (w *WebsiteScope) SetTeamCanvasCover(docID string, coverURL *string) (any, error) {
+	return w.Request("PUT", "/team-chat/docs/"+url.PathEscape(docID)+"/cover", &RequestOptions{Body: map[string]any{"cover_url": coverURL}})
+}
+
 // GetTeamCanvas reads a canvas. The body is an ARRAY OF BLOCKS with stable ids, not one blob of
 // HTML: comments and reactions attach to a block, so ids have to survive edits around them.
 func (w *WebsiteScope) GetTeamCanvas(docID string) (any, error) {
