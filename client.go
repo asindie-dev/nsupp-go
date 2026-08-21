@@ -669,6 +669,7 @@ func (w *WebsiteScope) ListTeamLists() (any, error) {
 
 // CreateTeamList creates an empty list. Give it columns next: a list with no columns is a table
 // with no shape, so nothing can be written into it yet.
+// F10-L23 — template_id creates the list from a built-in list template; its columns are created server-side, in order. Read the ids from the templates endpoint (list_templates). An unknown id answers 400 template_not_found rather than quietly making an empty list — a table silently missing the columns you asked for is worse than none.
 func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/lists", &RequestOptions{Body: body})
 }
