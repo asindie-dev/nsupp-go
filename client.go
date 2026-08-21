@@ -674,6 +674,21 @@ func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/lists", &RequestOptions{Body: body})
 }
 
+// ListTeamChannelTemplates Lists the channel templates in this workspace. A template BUNDLES canvases, lists and workflows so a new channel starts with the things it always needs, and carries a channel_prefix that standardises names. It holds REFERENCES, not copies - editing the source keeps the template current, and applying it makes copies so two channels never edit the same document. Items you cannot see are not listed, and an item whose target was deleted drops out.
+func (w *WebsiteScope) ListTeamChannelTemplates() (any, error) {
+	return w.Request("GET", "/team-chat/channel-templates", nil)
+}
+
+// CreateTeamChannelTemplate Creates a template from objects that ALREADY EXIST - you point at a canvas, list or workflow rather than describing one. Every item must be one you can see: an id you have no access to answers 404, because a template carrying an unreadable canvas would hand you a COPY of it on apply. A rejected request leaves nothing behind. The same object twice answers 409 (it would produce two copies); the same id in a different kind is a different object. At most 15 items - the channel tab limit.
+func (w *WebsiteScope) CreateTeamChannelTemplate(body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/channel-templates", &RequestOptions{Body: body})
+}
+
+// DeleteTeamChannelTemplate Deletes a template and its items. The objects it pointed at are UNTOUCHED: a template is a recipe, not a container. Channels already built from it keep everything, because those were copies from the start.
+func (w *WebsiteScope) DeleteTeamChannelTemplate(templateID string) (any, error) {
+	return w.Request("DELETE", "/team-chat/channel-templates/"+url.PathEscape(templateID), nil)
+}
+
 // ListTeamWorkflows Workflows are automations with ONE beginning and a list of steps. Trigger types: link · scheduled (every hourly/daily/weekly/yearly) · event (an eventType, optionally narrowed to channels) · webhook. A new workflow is born as a DRAFT and a draft never fires — publishing is a separate act. Steps today are app-provided only (plugin:<plugin_id>:<callback_id>): the official source gives the triggers but not the full built-in step catalogue, and offering steps that do nothing would make the builder a list of promises.
 func (w *WebsiteScope) ListTeamWorkflows(connector string) (any, error) {
 	q := ""
