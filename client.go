@@ -674,6 +674,11 @@ func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/lists", &RequestOptions{Body: body})
 }
 
+// AddMessageToList Adds a message to a list as a RECORD — this is how the message column gets filled, and it is the join between chat and lists rather than a separate concept. The cell stores a REFERENCE, never a copy of the text, so deleting the message empties the cell on its own. You must be able to see the message AND edit the list. The list must already have a message column; we answer 400 rather than adding one, because a column cannot be removed afterwards.
+func (w *WebsiteScope) AddMessageToList(messageID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/messages/"+url.PathEscape(messageID)+"/add-to-list", &RequestOptions{Body: body})
+}
+
 // DeleteTeamList Deletes a list and everything hanging off it — records, columns, views, shares, export jobs, stars and saved-for-later marks, by database cascade. No official counterpart exists (the twelve slackLists.* methods have no delete) but the product menu offers it, so hiding it from integrations would break the promise that you reach nearly all of the product. Needs edit access; there is no confirmation field, because confirmation is an interface decision.
 func (w *WebsiteScope) DeleteTeamList(listID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/lists/"+url.PathEscape(listID), nil)
