@@ -674,7 +674,7 @@ func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/lists", &RequestOptions{Body: body})
 }
 
-// ListTeamChannelTemplates Lists the channel templates in this workspace. A template BUNDLES canvases, lists and workflows so a new channel starts with the things it always needs, and carries a channel_prefix that standardises names. It holds REFERENCES, not copies - editing the source keeps the template current, and applying it makes copies so two channels never edit the same document. Items you cannot see are not listed, and an item whose target was deleted drops out.
+// ListTeamChannelTemplates Lists the channel templates in this workspace. A template BUNDLES canvases, lists and workflows so a new channel starts with the things it always needs, and carries a channel_prefix that standardises names. A template is FROZEN when you build it: adding an item duplicates what it points at, so editing or deleting the source afterwards changes nothing. Applying it makes another copy, so two channels never edit the same document.
 func (w *WebsiteScope) ListTeamChannelTemplates() (any, error) {
 	return w.Request("GET", "/team-chat/channel-templates", nil)
 }
@@ -684,7 +684,7 @@ func (w *WebsiteScope) CreateTeamChannelTemplate(body map[string]any) (any, erro
 	return w.Request("POST", "/team-chat/channel-templates", &RequestOptions{Body: body})
 }
 
-// DeleteTeamChannelTemplate Deletes a template and its items. The objects it pointed at are UNTOUCHED: a template is a recipe, not a container. Channels already built from it keep everything, because those were copies from the start.
+// DeleteTeamChannelTemplate Deletes a template and its items. The objects it was built from are UNTOUCHED \u2014 the template carried its own copy. Channels already built from it keep everything, because those were copies too.
 func (w *WebsiteScope) DeleteTeamChannelTemplate(templateID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/channel-templates/"+url.PathEscape(templateID), nil)
 }
