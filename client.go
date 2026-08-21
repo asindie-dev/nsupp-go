@@ -675,8 +675,12 @@ func (w *WebsiteScope) CreateTeamList(body map[string]any) (any, error) {
 }
 
 // ListTeamWorkflows Workflows are automations with ONE beginning and a list of steps. Trigger types: link · scheduled (every hourly/daily/weekly/yearly) · event (an eventType, optionally narrowed to channels) · webhook. A new workflow is born as a DRAFT and a draft never fires — publishing is a separate act. Steps today are app-provided only (plugin:<plugin_id>:<callback_id>): the official source gives the triggers but not the full built-in step catalogue, and offering steps that do nothing would make the builder a list of promises.
-func (w *WebsiteScope) ListTeamWorkflows() (any, error) {
-	return w.Request("GET", "/team-chat/workflows", nil)
+func (w *WebsiteScope) ListTeamWorkflows(connector string) (any, error) {
+	q := ""
+	if connector != "" {
+		q = "?connector=" + url.QueryEscape(connector)
+	}
+	return w.Request("GET", "/team-chat/workflows"+q, nil)
 }
 
 // CreateTeamWorkflow creates a DRAFT workflow — publish it separately, because a draft never fires.
