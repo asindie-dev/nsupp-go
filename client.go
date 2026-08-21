@@ -694,6 +694,21 @@ func (w *WebsiteScope) DeleteTeamWorkflow(workflowID string) (any, error) {
 	return w.Request("DELETE", "/team-chat/workflows/"+url.PathEscape(workflowID), nil)
 }
 
+// ListTeamWorkflowSteps Lists the workflow steps this workspace can actually use — the ones declared by apps installed here, not the whole catalogue. Each entry hands you step_type already assembled (plugin:<app_id>:<callback_id>); put that straight into a workflow's steps[].type rather than building the string yourself. input_parameters tells you which keys belong in that step's config.
+func (w *WebsiteScope) ListTeamWorkflowSteps() (any, error) {
+	return w.Request("GET", "/team-chat/workflow-steps", nil)
+}
+
+// RunTeamWorkflow Runs a published workflow now — the API counterpart of the link trigger. A draft does not run. Only the FIRST step is invoked: the official contract makes a step conclude with completeSuccess/completeError, so steps are a chain, not a broadcast. You get a run_id back; read the run to see where it got to.
+func (w *WebsiteScope) RunTeamWorkflow(workflowID string) (any, error) {
+	return w.Request("POST", "/team-chat/workflows/"+url.PathEscape(workflowID)+"/run", nil)
+}
+
+// GetTeamWorkflowRun Reads where a run got to, step by step. The run status is DERIVED, never stored: an errored step makes the run error, a passed deadline makes it expired, a waiting step makes it running, and success only when every step concluded. An expired execution is never reported as still pending.
+func (w *WebsiteScope) GetTeamWorkflowRun(runID string) (any, error) {
+	return w.Request("GET", "/team-chat/workflow-runs/"+url.PathEscape(runID), nil)
+}
+
 // AddMessageToList Adds a message to a list as a RECORD — this is how the message column gets filled, and it is the join between chat and lists rather than a separate concept. The cell stores a REFERENCE, never a copy of the text, so deleting the message empties the cell on its own. You must be able to see the message AND edit the list. The list must already have a message column; we answer 400 rather than adding one, because a column cannot be removed afterwards.
 func (w *WebsiteScope) AddMessageToList(messageID string, body map[string]any) (any, error) {
 	return w.Request("POST", "/team-chat/messages/"+url.PathEscape(messageID)+"/add-to-list", &RequestOptions{Body: body})
