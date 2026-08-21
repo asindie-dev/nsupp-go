@@ -714,6 +714,16 @@ func (w *WebsiteScope) SetTeamListAccess(listID string, body map[string]any) (an
 	return w.Request("PUT", "/team-chat/lists/"+url.PathEscape(listID)+"/access", &RequestOptions{Body: body})
 }
 
+// ListTeamListAutomations Lists the ready-made automations for a list and the questions its form would ask. THREE templates exist - form, due_date_notifications, due_date_summary - and each row tells you whether it is set up (workflow_id) and whether it is live (published). The form's questions are DERIVED from the list's columns every time you read, never stored: rename a column and the question renames with it. Computed columns (created time, last edited time, created by) are never asked - a form cannot let someone write the record's own timestamp.
+func (w *WebsiteScope) ListTeamListAutomations(listID string) (any, error) {
+	return w.Request("GET", "/team-chat/lists/"+url.PathEscape(listID)+"/workflows", nil)
+}
+
+// CreateTeamListAutomation Sets up one ready-made automation on a list - the API twin of the product's Set Up button. A form is not a separate object: it is a WORKFLOW, which is why finishing it is a publish. It is born as a DRAFT and a draft accepts no submissions; publish it with the workflow update call. Config per template: form takes hiddenFieldIds (hiding every question is refused - a form with no questions is a button that files blank records); the two due-date templates take dueDateFieldId pointing at a real DATE column, and due_date_summary also needs a channelId to post into. One template per list: a second form answers 409, because otherwise copy the form link would have no answer.
+func (w *WebsiteScope) CreateTeamListAutomation(listID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/workflows", &RequestOptions{Body: body})
+}
+
 // ListTeamWorkflowSteps Lists the workflow steps this workspace can actually use — the ones declared by apps installed here, not the whole catalogue. Each entry hands you step_type already assembled (plugin:<app_id>:<callback_id>); put that straight into a workflow's steps[].type rather than building the string yourself. input_parameters tells you which keys belong in that step's config.
 func (w *WebsiteScope) ListTeamWorkflowSteps() (any, error) {
 	return w.Request("GET", "/team-chat/workflow-steps", nil)
