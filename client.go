@@ -728,6 +728,11 @@ func (w *WebsiteScope) RestoreTeamCanvasVersion(docID, versionID string) (any, e
 	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/versions/"+url.PathEscape(versionID)+"/restore", nil)
 }
 
+// RestoreTeamListVersion Puts an earlier version of a list back. RESTORING IS A WRITE: view access is not enough. Rows are matched by ID, so a row deleted after the snapshot returns with the SAME id and rows added after it are removed; archived rows keep their original timestamp and sub-task links are restored, not flattened. COLUMNS ARE NOT TOUCHED — nothing in this API can delete a column, so a restore is not allowed to be more powerful than ordinary editing. The restore becomes its OWN version (`restored_from`) and is never coalesced. A TRUNCATED SNAPSHOT IS REFUSED with 409: it never held the whole list.
+func (w *WebsiteScope) RestoreTeamListVersion(listID, versionID string) (any, error) {
+	return w.Request("POST", "/team-chat/lists/"+url.PathEscape(listID)+"/versions/"+url.PathEscape(versionID)+"/restore", nil)
+}
+
 // SetTeamListAccess Sets a list's general access level — the twin of what canvases could already do through their PATCH. CHANGING THE LEVEL IS A SHARING ACT, so it needs the same permission sharing does: if the owner turned on only you can share, this answers share_locked too. An unknown value is refused rather than quietly ignored. Careful: lowering to org_view can remove YOUR OWN edit right, if that right came from org_edit.
 func (w *WebsiteScope) SetTeamListAccess(listID string, body map[string]any) (any, error) {
 	return w.Request("PUT", "/team-chat/lists/"+url.PathEscape(listID)+"/access", &RequestOptions{Body: body})
