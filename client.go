@@ -636,6 +636,14 @@ func (w *WebsiteScope) CommentOnTeamCanvasBlock(docID, blockID string, body map[
 	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/blocks/"+url.PathEscape(blockID)+"/comments", &RequestOptions{Body: body})
 }
 
+// ReactToTeamCanvasBlock toggles an emoji reaction on one block. Sending the same emoji again
+// removes it; the response reports the direction in mine. READ access is enough. The block must
+// exist in the body, otherwise 404 block_not_found. The reaction belongs to YOUR app's identity,
+// not to a person - an app cannot react on behalf of a team member.
+func (w *WebsiteScope) ReactToTeamCanvasBlock(docID, blockID string, body map[string]any) (any, error) {
+	return w.Request("POST", "/team-chat/docs/"+url.PathEscape(docID)+"/blocks/"+url.PathEscape(blockID)+"/reactions", &RequestOptions{Body: body})
+}
+
 // SetTeamCanvasCover sets (or removes) the canvas cover image. The image is NOT uploaded here:
 // upload it first and pass the resulting URL. Only a URL from your own account is accepted -
 // a cover republishes that file inside your canvas. Pass nil to remove it (object deleted too).
